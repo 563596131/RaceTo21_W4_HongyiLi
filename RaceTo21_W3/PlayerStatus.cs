@@ -6,7 +6,8 @@ namespace RaceTo21
 		active,
 		stay,
 		bust,
-		win
+		win,
+		leave // new player status when player do not play next turn
 	}
 }
 

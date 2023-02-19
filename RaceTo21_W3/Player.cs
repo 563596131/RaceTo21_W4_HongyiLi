@@ -8,16 +8,14 @@ namespace RaceTo21
 		public string name;
 		public List<Card> cards = new List<Card>();
 		public PlayerStatus status = PlayerStatus.active;
-		public int score;
-		//public int bet;
-		//public int upbet;
+		public int score; // The total score of the player's current hand
+		public int bet;
 
 		public Player(string n)
 		{
 			name = n;
-			//bet = 100; // the number of bet every player has at begainning
-			//upbet = 0;
-        }
+			bet = 75; // The total number of chips each player initially owns
+		}
 
 		/* Introduces player by name
 		 * Called by CardTable object

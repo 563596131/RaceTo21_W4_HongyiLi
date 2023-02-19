@@ -60,6 +60,11 @@ namespace RaceTo21
             return response;
         }
 
+        /* Determine whether to deal a card to the current player
+         * Is called by Game object
+         * Game object provides bool value
+         * Returns bool value to Game object
+         */
         public bool OfferACard(Player player)
         {
             while (true)
@@ -81,35 +86,37 @@ namespace RaceTo21
             }
         }
 
-        /* Betting component
-         * 1.Each players has a number of chips to bet each round
-         * 2.winner of each round gets all of the chips in the current pot
-         * 3.if nobody win, the pot remain for the next round
-         * 4.player with the most chips after 3 round wins the game
-         * called by the Game object
+        /* The current player chooses whether to proceed to the next round of the game
+         * Is called by Game object
+         * Game object provides bool value
+         * Returns bool value to Game object
          */
-        //public bool OfferBet(Player player)
-        //{
-        //    Console.WriteLine("Please enter your bet");
-        //    string responsBet = Console.ReadLine(); // player type the bet
-        //    int numberOfBet;
-        //    while (int.TryParse(responsBet, out numberOfBet) == false)
-        //    {
+        public bool LeaveGame(Player player)
+        {
+            while (true)
+            {
+                Console.Write(player.name + ", Do you want to play next round? (Y/N)");
+                string response = Console.ReadLine();
+                if (response.ToUpper().StartsWith("Y"))
+                {
+                    return true;
+                }
+                else if (response.ToUpper().StartsWith("N"))
+                {
+                    return false;
+                }
+                else
+                {
+                    Console.WriteLine("Please answer Y(es) or N(o)!");
+                }
+            }
+        }
 
-        //    }
-        //    while (numberOfBet < player.upbet)
-        //    {
-
-        //    }
-        //    if (player.bet < player.upbet)
-        //    {
-        //        return false;
-        //    }
-        //    player.upbet = numberOfBet;
-        //    player.bet = player.bet - numberOfBet;
-        //    return true;
-        //}
-
+        /* Show the current player's hand with a full spell of cards
+         * Is called by Game object
+         * Game object provides currentplayer
+         * Returns hands name of a player to Game object
+         */
         public void ShowHand(Player player)
         {
             if (player.cards.Count > 0)
@@ -120,7 +127,7 @@ namespace RaceTo21
                 string show = player.name + " has: ";
                 foreach (Card card in player.cards)
                 {
-                    string[] split = card.displayName.Split(" ");
+                    string[] split = card.displayName.Split(" "); // Use an array to split the card name and replace the long name
                     string cardName = split[0];
                     string cardLongName = split[0];
                     switch (cardName)
@@ -171,7 +178,7 @@ namespace RaceTo21
                 show = show.Remove(show.Length - 2);
                 Console.WriteLine(show);
 
-                Console.Write("=" + player.score + "/21 ");
+                Console.Write("=" + player.score + "/21 "); // show current player's score at present
                 if (player.status != PlayerStatus.active)
                 {
                     Console.Write("(" + player.status.ToString().ToUpper() + ")");
@@ -180,6 +187,11 @@ namespace RaceTo21
             }
         }
 
+        /* Show the current player's hands
+         * Is called by Game object
+         * Game object provides currentplayer
+         * Returns hands of a player to Game object
+         */
         public void ShowHands(List<Player> players)
         {
             foreach (Player player in players)
@@ -188,12 +200,17 @@ namespace RaceTo21
             }
         }
 
-
+        /* Show the final winner
+         * Is called by Game object
+         * Game object provides final winner
+         * Returns name of a player to Game object
+         */
         public void AnnounceWinner(Player player)
         {
             if (player != null)
             {
-                Console.WriteLine(player.name + " wins!");
+                //Console.WriteLine(player.name + " wins!");
+                Console.WriteLine("Final Winner is " + player.name);
             }
             else
             {

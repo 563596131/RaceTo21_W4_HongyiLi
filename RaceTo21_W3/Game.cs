@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 
 namespace RaceTo21
 {
@@ -13,21 +12,23 @@ namespace RaceTo21
         Deck deck = new Deck(); // deck of cards
         int currentPlayer = 0; // current player on list
         public Task nextTask; // keeps track of game state
-        private bool cheating = false; // lets you cheat for testing purposes if true
+        //private bool cheating = false; // lets you cheat for testing purposes if true
         private int bustNum = 0; // the numbers of player bust
+        private int Rounds = 0; // define the number of round
+        private int sumBet = 0; // Define an intermediate value of winning and losing for easy calculation
 
         public Game(CardTable c)
         {
             cardTable = c;
             deck.Shuffle();
-            deck.ShowAllCards();
+            //deck.ShowAllCards();
             nextTask = Task.GetNumberOfPlayers;
         }
 
         /* Adds a player to the current game
          * Called by DoNextTask() method
          */
-        public void AddPlayer(string n)
+        private void AddPlayer(string n)
         {
             players.Add(new Player(n));
         }
@@ -58,6 +59,13 @@ namespace RaceTo21
             {
                 cardTable.ShowPlayers(players);
                 nextTask = Task.PlayerTurn;
+                foreach (Player item in players)
+                {
+                    if (Rounds == 0)
+                    {
+                        Console.WriteLine(item.name + ", ante = 10");
+                    }
+                }
             }
             else if (nextTask == Task.PlayerTurn)
             {
@@ -65,27 +73,110 @@ namespace RaceTo21
                 Player player = players[currentPlayer];
                 if (player.status == PlayerStatus.active)
                 {
-                    //if (players.Count == 1) // if only remain one player, win derectly
-                    //{
-                    //    player.status = PlayerStatus.win;
-                    //    cardTable.ShowHand(player);
-                    //    cardTable.AnnounceWinner(player);
-                    //    nextTask = Task.GameOver;
-                    //    return;
-                    //}
                     if (cardTable.OfferACard(player))
                     {
                         /* If only one player is not bust
-                         * this player will win directly
+                         * this player will win this round directly
                          */
                         if (bustNum == players.Count - 1)
                         {
-                            // win, showhands and game over
-                            player.status = PlayerStatus.win;
                             cardTable.ShowHand(player);
-                            cardTable.AnnounceWinner(player);
-                            nextTask = Task.GameOver;
-                            return;
+                            Rounds++;
+                            if (Rounds == 3) // third round
+                            {
+                                foreach (Player item in players)
+                                {
+                                    if (item.status != PlayerStatus.leave) // If the player does not leave, will pay the ante bet of this round
+                                    {
+                                        item.bet = item.bet - 50; // round 3 ante is 50
+                                        sumBet = sumBet + 50;
+                                    }
+                                }
+                                player.bet = player.bet + sumBet;
+                                foreach (Player item in players)
+                                {
+                                    Console.WriteLine(item.name + " remains " + item.bet);
+                                }
+                                Console.WriteLine(player.name + " wins!");
+                                /* Sorts the array data according to descending order and returns 
+                                 * the first element in the sequence, or the default value if none
+                                 * for this part is for finding the final winner with most chips
+                                 */
+                                var win = players.OrderByDescending(x => x.bet).FirstOrDefault();
+
+                                win.status = PlayerStatus.win;
+                                cardTable.AnnounceWinner(win); // show the final winner
+                                nextTask = Task.GameOver;
+
+                                return;
+                            }
+                            else
+                            {
+                                foreach (Player item in players)
+                                {
+                                    if (Rounds == 1) // first round
+                                    {
+                                        item.bet = item.bet - 10; // round 1 ante is 10
+                                        sumBet = sumBet + 10;
+                                    }
+                                    else // second round
+                                    {
+                                        if (item.status != PlayerStatus.leave)
+                                        {
+                                            item.bet = item.bet - 15; // round 2 ante is 15
+                                            sumBet = sumBet + 15;
+                                        }
+                                    }
+                                    item.cards = new List<Card>();
+                                    item.score = 0;
+                                    item.status = PlayerStatus.active;
+                                }
+                                player.bet = player.bet + sumBet;
+                                sumBet = 0;
+                                bustNum = 0;
+                                currentPlayer = 0;
+                                player.status = PlayerStatus.active;
+                                nextTask = Task.PlayerTurn;
+                                Console.WriteLine("Round " + Rounds + " is over");
+                                Console.WriteLine(player.name + " wins!");
+                                foreach (Player item in players)
+                                {
+                                    Console.WriteLine(item.name + " remains " + item.bet);
+                                }
+                                foreach (Player item in players)
+                                {
+                                    if (!cardTable.LeaveGame(item))
+                                    {
+                                        Console.WriteLine(item.name + " quit this round!"); // 
+                                        item.status = PlayerStatus.leave;
+                                        bustNum++;
+                                    }
+                                    else
+                                    {
+                                        switch (Rounds + 1)
+                                        {
+                                            /* Show the player that the number of rounds is increasing
+                                             * and the ante will gradually increase
+                                             * round 1 ante = 10
+                                             * round 2 ante = 15
+                                             * round 3 ante = 50
+                                             */
+                                            case 1:
+                                                Console.WriteLine(item.name + ", ante = 10");
+                                                break;
+                                            case 2:
+                                                Console.WriteLine(item.name + ", ante = 15");
+                                                break;
+                                            case 3:
+                                                Console.WriteLine(item.name + ", ante = 50");
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                    }
+                                }
+                                return;
+                            }
                         }
                         Card card = deck.DealTopCard();
                         player.cards.Add(card);
@@ -97,23 +188,99 @@ namespace RaceTo21
                         }
                         else if (player.score == 21)
                         {
-                            player.status = PlayerStatus.win;
                             /* If someone get 21 in total 
                              * this player will win directly
                              */
                             cardTable.ShowHand(player);
-                            cardTable.AnnounceWinner(player);
-                            nextTask = Task.GameOver;
-                            return;
+                            Rounds++;
+                            if (Rounds == 3)
+                            {
+                                foreach (Player item in players)
+                                {
+                                    if (item.status != PlayerStatus.leave)
+                                    {
+                                        item.bet = item.bet - 50;
+                                        sumBet = sumBet + 50;
+                                    }
+                                }
+                                player.bet = player.bet + sumBet;
+                                foreach (Player item in players)
+                                {
+                                    Console.WriteLine(item.name + " remains " + item.bet);
+                                }
+                                Console.WriteLine(player.name + " wins!");
+                                var win = players.OrderByDescending(x => x.bet).FirstOrDefault();
+
+                                win.status = PlayerStatus.win;
+                                cardTable.AnnounceWinner(win);
+                                nextTask = Task.GameOver;
+                                return;
+                            }
+                            else
+                            {
+                                foreach (Player item in players)
+                                {
+                                    if (Rounds == 1)
+                                    {
+                                        item.bet = item.bet - 10;
+                                        sumBet = sumBet + 10;
+                                    }
+                                    else
+                                    {
+                                        if (item.status != PlayerStatus.leave)
+                                        {
+                                            item.bet = item.bet - 15;
+                                            sumBet = sumBet + 15;
+                                        }
+                                    }
+                                    item.cards = new List<Card>();
+                                    item.score = 0;
+                                    item.status = PlayerStatus.active;
+                                }
+                                player.bet = player.bet + sumBet;
+                                sumBet = 0;
+                                bustNum = 0;
+                                currentPlayer = 0;
+                                nextTask = Task.PlayerTurn;
+                                Console.WriteLine("Round " + Rounds + " is over");
+                                Console.WriteLine(player.name + " wins!");
+                                foreach (Player item in players)
+                                {
+                                    Console.WriteLine(item.name + " remains " + item.bet);
+                                }
+                                foreach (Player item in players)
+                                {
+                                    if (!cardTable.LeaveGame(item))
+                                    {
+                                        Console.WriteLine(item.name + " quit this round!");
+                                        item.status = PlayerStatus.leave;
+                                        bustNum++;
+                                    }
+                                    else
+                                    {
+                                        switch (Rounds + 1)
+                                        {
+                                            case 1:
+                                                Console.WriteLine(item.name + ", ante = 10");
+                                                break;
+                                            case 2:
+                                                Console.WriteLine(item.name + ", ante = 15");
+                                                break;
+                                            case 3:
+                                                Console.WriteLine(item.name + ", ante = 50");
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                    }
+                                }
+                                return;
+                            }
                         }
                     }
                     else
                     {
                         player.status = PlayerStatus.stay;
-                        /* out component
-                         */
-                        //Console.WriteLine(player.name + " is out"); // if bust, player will out
-                        //players.RemoveAt(currentPlayer);
                     }
                 }
                 cardTable.ShowHand(player);
@@ -124,30 +291,94 @@ namespace RaceTo21
                 if (!CheckActivePlayers())
                 {
                     Player winner = DoFinalScoring();
-                    /* If no bust, there will be some different situations
-                     * 1. no bust, but everyone stay, there will be one winner
-                     * 2. nobody draw card at first
-                     */
-                    if (bustNum == 0)
+                    if (winner == null)
                     {
-                        if (winner !=null)
+                        winner = players.Last();
+                    }
+                    Rounds++;
+                    if (Rounds == 3)
+                    {
+                        foreach (Player item in players)
                         {
-                            Console.WriteLine(winner.name + " wins! ");
+                            if (item.status != PlayerStatus.leave)
+                            {
+                                item.bet = item.bet - 50;
+                                sumBet = sumBet + 50;
+                            }
                         }
-                        else
+                        winner.bet = winner.bet + sumBet;
+                        foreach (Player item in players)
                         {
-                            Console.WriteLine("Pleaase replay"); // no one draw card, error!
+                            Console.WriteLine(item.name + " remains " + item.bet);
                         }
-                        Console.Write("Press <Enter> to Exit..."); // give a hint
-                        while (Console.ReadKey().Key != ConsoleKey.Enter) { }
-                        cardTable.ShowPlayers(players);
-                        nextTask = Task.PlayerTurn;
+                        Console.WriteLine(winner.name + " wins!");
+                        var win = players.OrderByDescending(x => x.bet).FirstOrDefault();
+
+                        win.status = PlayerStatus.win;
+                        cardTable.AnnounceWinner(win);
+                        nextTask = Task.GameOver;
+                        return;
                     }
                     else
                     {
-                        cardTable.AnnounceWinner(winner);
+                        foreach (Player item in players)
+                        {
+                            if (Rounds == 1)
+                            {
+                                item.bet = item.bet - 10;
+                                sumBet = sumBet + 10;
+                            }
+                            else
+                            {
+                                if (item.status != PlayerStatus.leave)
+                                {
+                                    item.bet = item.bet - 15;
+                                    sumBet = sumBet + 15;
+                                }
+                            }
+                            item.cards = new List<Card>();
+                            item.score = 0;
+                            item.status = PlayerStatus.active;
+                        }
+                        winner.bet = winner.bet + sumBet;
+                        sumBet = 0;
+                        bustNum = 0;
+                        currentPlayer = 0;
+                        nextTask = Task.PlayerTurn;
+                        Console.WriteLine("Round " + Rounds + " is over");
+                        Console.WriteLine(winner.name + " wins!");
+                        foreach (Player item in players)
+                        {
+                            Console.WriteLine(item.name + " remains " + item.bet);
+                        }
+                        foreach (Player item in players)
+                        {
+                            if (!cardTable.LeaveGame(item))
+                            {
+                                Console.WriteLine(item.name + " quit this round!");
+                                item.status = PlayerStatus.leave;
+                                bustNum++;
+                            }
+                            else
+                            {
+                                switch (Rounds + 1)
+                                {
+                                    case 1:
+                                        Console.WriteLine(item.name + ", ante = 10");
+                                        break;
+                                    case 2:
+                                        Console.WriteLine(item.name + ", ante = 15");
+                                        break;
+                                    case 3:
+                                        Console.WriteLine(item.name + ", ante = 50");
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                        return;
                     }
-                    nextTask = Task.GameOver;
                 }
                 else
                 {
@@ -166,21 +397,21 @@ namespace RaceTo21
             }
         }
 
-        public int ScoreHand(Player player)
+        private int ScoreHand(Player player)
         {
             int score = 0;
-            if (cheating == true && player.status == PlayerStatus.active)
-            {
-                string response = null;
-                while (int.TryParse(response, out score) == false)
-                {
-                    Console.Write("OK, what should player " + player.name + "'s score be?");
-                    response = Console.ReadLine();
-                }
-                return score;
-            }
-            else
-            {
+            //if (cheating == true && player.status == PlayerStatus.active)
+            //{
+            //    string response = null;
+            //    while (int.TryParse(response, out score) == false)
+            //    {
+            //        Console.Write("OK, what should player " + player.name + "'s score be?");
+            //        response = Console.ReadLine();
+            //    }
+            //    return score;
+            //}
+            //else
+            //{
                 foreach (Card card in player.cards)
                 {
                     string cardId = card.id;
@@ -200,11 +431,16 @@ namespace RaceTo21
                             break;
                     }
                 }
-            }
+            //}
             return score;
         }
 
-        public bool CheckActivePlayers()
+        /* Iterate over all player states and check if they still have at least one player
+         * Is called by Game object
+         * Game object provides bool value
+         * Returns bool value to Game object
+         */
+        private bool CheckActivePlayers()
         {
             foreach (var player in players)
             {
@@ -216,7 +452,7 @@ namespace RaceTo21
             return false; // everyone has stayed or busted, or someone won!
         }
 
-        public Player DoFinalScoring()
+        private Player DoFinalScoring()
         {
             int highScore = 0;
             foreach (var player in players)

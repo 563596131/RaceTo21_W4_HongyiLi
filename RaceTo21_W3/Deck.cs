@@ -12,6 +12,7 @@ namespace RaceTo21
         {
             Console.WriteLine("*********** Building deck...");
             List <string> suits = new List<string> { "Spades", "Hearts", "Clubs", "Diamonds" };
+            Dictionary<string, string> imgDictionary = new Dictionary<string, string>(); // Create a new dictionary of double strings to store images
 
             for (int cardVal = 1; cardVal <= 13; cardVal++)
             {
@@ -19,6 +20,8 @@ namespace RaceTo21
                 {
                     string cardName;
                     string cardLongName;
+                    string cardID; // the ID of each card
+                    string imgID; // the ID of each image
 
                     switch (cardVal)
                     {
@@ -43,7 +46,10 @@ namespace RaceTo21
                             cardLongName = cardName;
                             break;
                     }
-                    cards.Add(new Card(cardName + cardSuit.First<char>(), cardLongName + " of " + cardSuit));
+                    imgID = "card" + cardSuit + "" + cardName + ".png";
+                    cardID = cardName + cardSuit.First<char>();
+                    cards.Add(new Card(cardID, cardLongName + " of " + cardSuit));
+                    imgDictionary.Add(cardID, imgID); // put all card in the dictionary of images
                 }
             }
         }
